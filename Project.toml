@@ -1,3 +1,8 @@
+name = "GrayScott"
+uuid = "97af4812-b3aa-43f5-9e70-8ef128019d1a"
+authors = ["csimal"]
+version = "0.1.0"
+
 [deps]
 ArrayPadding = "fe5ef43c-4912-423d-9170-4bd5cb6a013a"
 BenchmarkTools = "6e4b80f9-dd63-53aa-95a3-0cdb28fa8baf"
@@ -14,5 +19,6 @@ LoopVectorization = "bdcacae8-1622-11e9-2a5c-532679323890"
 OrdinaryDiffEq = "1dea7af3-3e70-54e6-95c3-0bf5283fa5ed"
 ProgressMeter = "92933f4c-e287-5a05-a399-4b506db050ca"
 SIMD = "fdea26ae-647d-5447-a871-4b548cad5224"
+SharedArrays = "1a1011a3-84de-559e-8e89-a11a2f7dc383"
 StatsPlots = "f3b207a7-027a-5e70-b257-86293d7955fd"
 Supposition = "5a0628fe-1738-4658-9b6d-0b7605a9755b"

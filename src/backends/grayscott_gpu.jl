@@ -1,0 +1,2 @@
+
+struct GPUGrayScott <: AbstractGrayScott end

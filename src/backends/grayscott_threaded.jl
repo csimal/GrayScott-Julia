@@ -1,0 +1,2 @@
+
+struct ThreadedGrayScott <: AbstractGrayScott end

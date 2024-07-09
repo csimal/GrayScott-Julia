@@ -55,6 +55,7 @@ include("AbstractGrayScott.jl")
 
 include("backends/grayscott_simple.jl")
 include("backends/grayscott_advanced.jl")
+include("backends/grayscott_threaded.jl")
 include("backends/grayscott_parallel.jl")
 include("backends/grayscott_simd.jl")
 include("backends/grayscott_turbo.jl")
@@ -77,11 +78,13 @@ function simulate(
         for _ in 1:opts.num_extra_steps
             update!(dx, x, params, backend)
             @. x += dx * opts.Δt
-
         end
         output!(view(out, i,:,:,:), x, backend)
     end
-    return out
+    # TODO: Write to file at each step to save on memory?
+    h5open(opts.output, "w") do file
+        write(file, "grayscott", out)
+    end
 end
 
 

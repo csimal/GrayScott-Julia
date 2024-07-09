@@ -48,8 +48,8 @@ function laplacian!(du, u, D, ::TurboGrayScott)
     @turbo for j in 2:(n-1), i in 2:(m-1)
         tmp = 0.0
         tmp += 0.25*u[i-1,j-1] + 0.5*u[i,j-1] + 0.25*u[i+1,j-1]
-        tmp += 0.5*(u[i-1,j] + u[i+1,j]) - 3.0*u[i,j]
-        tmp += 0.5*u[i-1,j+1] + 0.5*u[i,j+1] + 0.25*u[i+1,j+1]
+        tmp += 0.5*u[i-1,j] - 3.0*u[i,j] + 0.5*u[i+1,j]
+        tmp += 0.25*u[i-1,j+1] + 0.5*u[i,j+1] + 0.25*u[i+1,j+1]
         du[i,j] = D * tmp
     end
 end

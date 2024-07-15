@@ -8,41 +8,26 @@ NOTE: Unfortunately, LoopVectorization is likely to be deprecated in the next ve
 """
 struct TurboGrayScott <: AbstractGrayScott end
 
-function initial_state(init_cond, ::TurboGrayScott)
-    x = pad(init_cond, 0.0, (0,1,1))
-    x, similar(x)
-end
-
 function output!(out, state, ::TurboGrayScott)
+    @assert size(state, 1) == size(out, 1) + 2
     @assert size(state, 2) == size(out, 2) + 2
-    @assert size(state, 3) == size(out, 3) + 2
 
     @turbo for j in axes(out,2), i in axes(out,1)
-        @inbounds out[1,i,j] = state[1,i+1,j+1]
-        @inbounds out[2,i,j] = state[2,i+1,j+1]
+        @inbounds out[i,j,1] = state[i+1,j+1,1]
+        @inbounds out[i,j,2] = state[i+1,j+1,2]
     end
 end
 
-function update!(dx, x, params::GrayScottParams, gs::TurboGrayScott)
-    u = view(x, 1,:,:)
-    v = view(x, 2,:,:)
-    du = view(dx, 1,:,:)
-    dv = view(dx, 2,:,:)
-
-    dx .= 0.0 # zero it out for sanity
-
-    laplacian!(du, u, params.Dᵤ, gs)
-    laplacian!(dv, v, params.Dᵥ, gs)
-
+function reaction!(du, dv, u, v, params::GrayScottParams, ::TurboGrayScott)
+    m, n = size(du)
     f, k = params.f, params.k
-    @turbo for i in eachindex(u)
-        @inbounds uv = u[i] * v[i]^2
-        @inbounds du[i] += -uv + f * (1.0 - u[i])
-        @inbounds dv[i] += uv - (f+k)*v[i]
+    @turbo for j in 2:(n-1), i in 2:(m-1)
+        @inbounds uv = u[i,j] * v[i,j]^2
+        @inbounds du[i,j] += -uv + f * (1.0 - u[i,j])
+        @inbounds dv[i,j] += uv - (f+k)*v[i,j]
     end
 end
 
-# Note: this overrides the default method
 function laplacian!(du, u, D, ::TurboGrayScott)
     m, n = size(du)
     @turbo for j in 2:(n-1), i in 2:(m-1)

@@ -5,6 +5,7 @@ using LinearAlgebra
 using HDF5
 using OrdinaryDiffEq
 using ImageFiltering # efficient convolutions <3
+using StaticKernels
 # HPC packages
 using ComputationalResources # Choose your hardware backend for ImageFiltering
 using SharedArrays
@@ -32,15 +33,15 @@ Base.@kwdef struct GrayScottOptions
 end
 
 function initial_condition(opts::GrayScottOptions)
-    x = zeros(2, opts.nrow, opts.ncol)
-    x[1,:,:] .= 1.0
+    x = zeros(opts.nrow, opts.ncol, 2)
+    x[:,:,1] .= 1.0
     imin = 7 * opts.nrow ÷ 16
     imax = 8 * opts.nrow ÷ 16
     jmin = 7 * opts.ncol ÷ 16
     jmax = 8 * opts.ncol ÷ 16
 
-    x[1,imin:imax,jmin:jmax] .= 0.0
-    x[2,imin:imax,jmin:jmax] .= 1.0
+    x[imin:imax,jmin:jmax,1] .= 0.0
+    x[imin:imax,jmin:jmax,2] .= 1.0
     return x
 end
 
@@ -68,7 +69,7 @@ function simulate(
     init_cond = initial_condition(opts)
 )
     @assert ndims(init_cond) == 3 "Initial condition must be a 3-dimensional array"
-    @assert size(init_cond, 1) == 2 "The first dimension of the initial condition must be of length 2"
+    @assert size(init_cond, 3) == 2 "The third dimension of the initial condition must be of length 2"
 
     x, dx = initial_state(init_cond, backend)
 
@@ -79,7 +80,7 @@ function simulate(
             update!(dx, x, params, backend)
             @. x += dx * opts.Δt
         end
-        output!(view(out, i,:,:,:), x, backend)
+        output!(view(out, :,:,:,i), x, backend)
     end
     # TODO: Write to file at each step to save on memory?
     h5open(opts.output, "w") do file

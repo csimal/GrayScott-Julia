@@ -6,36 +6,37 @@ A slightly sophisticated backend for the Gray-Scott ODE. It is essentially the s
 """
 struct AdvancedGrayScott <: AbstractGrayScott end
 
-function initial_state(init_cond, ::AdvancedGrayScott)
-    x = pad(init_cond, 0.0, (0,1,1))
-    x, similar(x)
-end
-
 function output!(out, state, ::AdvancedGrayScott)
+    @assert size(state, 1) == size(out, 1) + 2
     @assert size(state, 2) == size(out, 2) + 2
-    @assert size(state, 3) == size(out, 3) + 2
 
     for j in axes(out,2), i in axes(out,1)
-        @inbounds out[1,i,j] = state[1,i+1,j+1]
-        @inbounds out[2,i,j] = state[2,i+1,j+1]
+        @inbounds out[i,j,1] = state[i+1,j+1,1]
+        @inbounds out[i,j,2] = state[i+1,j+1,2]
     end
 end
 
-function update!(dx, x, params::GrayScottParams, gs::AdvancedGrayScott)
-    u = view(x, 1,:,:)
-    v = view(x, 2,:,:)
-    du = view(dx, 1,:,:)
-    dv = view(dx, 2,:,:)
-
-    dx .= 0.0 # zero it out for sanity
-
-    laplacian!(du, u, params.Dᵤ, gs)
-    laplacian!(dv, v, params.Dᵥ, gs)
-
+@inline function reaction!(du, dv, u, v, params::GrayScottParams, ::AdvancedGrayScott)
+    m, n = size(du)
     f, k = params.f, params.k
-    @simd for i in eachindex(u)
-        @inbounds uv = u[i] * v[i]^2
-        @inbounds du[i] += -uv + f * (1 - u[i])
-        @inbounds dv[i] += uv - (f+k)*v[i]
+    @inbounds for j in 2:(n-1)
+        @simd for i in 2:(m-1)
+            uv = u[i,j] * v[i,j]^2
+            du[i,j] += -uv + f * (1 - u[i,j])
+            dv[i,j] += uv - (f+k)*v[i,j]
+        end
+    end
+end
+
+@inline function laplacian!(du, u, D, ::AdvancedGrayScott)
+    m, n = size(du)
+    @inbounds for j in 2:(n-1)
+        @simd for i in 2:(m-1)
+            tmp = 0.0
+            tmp += 0.25*u[i-1,j-1] + 0.5*u[i,j-1] + 0.25*u[i+1,j-1]
+            tmp += 0.5*u[i-1,j] - 3.0*u[i,j] + 0.5*u[i+1,j]
+            tmp += 0.25*u[i-1,j+1] + 0.5*u[i,j+1] + 0.25*u[i+1,j+1]
+            du[i,j] = D * tmp
+        end
     end
 end

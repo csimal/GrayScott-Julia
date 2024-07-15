@@ -6,10 +6,14 @@ The abstract type for backends to compute the Gray-Scott ODE.
 """
 abstract type AbstractGrayScott end
 
-initial_state(init_cond, ::AbstractGrayScott) = init_cond
+function initial_state(init_cond, ::AbstractGrayScott)
+    x = pad(init_cond, 0.0, (1,1,0))
+    x, similar(x)
+end
+
 
 function allocate_output(init_cond, opts::GrayScottOptions, ::AbstractGrayScott)
-    zeros(opts.num_output_steps, size(init_cond)...)
+    zeros(size(init_cond)..., opts.num_output_steps)
 end
 
 # by default, the convolution will be computed on a single core
@@ -20,6 +24,20 @@ const LAPLACIAN_KERNEL = centered([
     0.5 -3.0 0.5;
     0.25 0.5 0.25
 ])
+
+function update!(dx, x, params::GrayScottParams, backend::AbstractGrayScott)
+    u = view(x, :,:,1)
+    v = view(x, :,:,2)
+    du = view(dx, :,:,1)
+    dv = view(dx, :,:,2)
+
+    dx .= 0.0 # zero it out for sanity
+
+    laplacian!(du, u, params.Dᵤ, backend)
+    laplacian!(dv, v, params.Dᵥ, backend)
+
+    reaction!(du, dv, u, v, params, backend)
+end
 
 function laplacian!(du, u, D, backend::AbstractGrayScott)
     @assert ndims(du) == 2
@@ -36,4 +54,13 @@ function laplacian!(du, u, D, backend::AbstractGrayScott)
         (axs[1][begin+1:end-1], axs[2][begin+1:end-1]) # only compute the inner array
     )
     du .*= D
+end
+
+const k = StaticKernels.Kernel{(-1:1,-1:1)}(
+    @inline w -> 0.25*w[-1,-1] + 0.5*w[0,-1] + 0.25*w[1,-1] + 0.5*w[-1,0] - 3.0*w[0,0] + 0.5*w[1,0] + 0.25*w[-1,1] + 0.5*w[0,1] + 0.25*w[1,1]
+)
+
+function laplacian_!(du, u, kernel, D, backend::AbstractGrayScott)
+    map!(kernel, du, u)
+    du .* D
 end

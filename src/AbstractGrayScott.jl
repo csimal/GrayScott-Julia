@@ -3,6 +3,10 @@
     AbstractGrayScott
 
 The abstract type for backends to compute the Gray-Scott ODE.
+
+Generic methods for setting up the initial state and data structures are provided, as well as a generic method for `update!`.
+
+Any subtype needs to implement `output!`, `reaction!` and `laplacian!` to have a functional implementation.
 """
 abstract type AbstractGrayScott end
 
@@ -10,7 +14,6 @@ function initial_state(init_cond, ::AbstractGrayScott)
     x = pad(init_cond, 0.0, (1,1,0))
     x, similar(x)
 end
-
 
 function allocate_output(init_cond, opts::GrayScottOptions, ::AbstractGrayScott)
     zeros(size(init_cond)..., opts.num_output_steps)
@@ -33,10 +36,10 @@ function update!(dx, x, params::GrayScottParams, backend::AbstractGrayScott)
 
     dx .= 0.0 # zero it out for sanity
 
-    laplacian!(du, u, params.Dᵤ, backend)
-    laplacian!(dv, v, params.Dᵥ, backend)
+    @inline laplacian!(du, u, params.Dᵤ, backend)
+    @inline laplacian!(dv, v, params.Dᵥ, backend)
 
-    reaction!(du, dv, u, v, params, backend)
+    @inline reaction!(du, dv, u, v, params, backend)
 end
 
 function laplacian!(du, u, D, backend::AbstractGrayScott)

@@ -16,7 +16,7 @@ function output!(out, state, ::AdvancedGrayScott)
     end
 end
 
-@inline function reaction!(du, dv, u, v, params::GrayScottParams, ::AdvancedGrayScott)
+function reaction!(du, dv, u, v, params::GrayScottParams, ::AdvancedGrayScott)
     m, n = size(du)
     f, k = params.f, params.k
     @inbounds for j in 2:(n-1)
@@ -28,7 +28,7 @@ end
     end
 end
 
-@inline function laplacian!(du, u, D, ::AdvancedGrayScott)
+function laplacian!(du, u, D, ::AdvancedGrayScott)
     m, n = size(du)
     @inbounds for j in 2:(n-1)
         @simd for i in 2:(m-1)

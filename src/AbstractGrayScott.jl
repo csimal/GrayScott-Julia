@@ -28,6 +28,11 @@ const LAPLACIAN_KERNEL = centered([
     0.25 0.5 0.25
 ])
 
+function ode_step!(dx, x, params::GrayScottParams, ::AbstractGrayScott)
+    @. x += dx * params.dt
+    clamp!(x, 0.0, 1.0)
+end
+
 function update!(dx, x, params::GrayScottParams, backend::AbstractGrayScott)
     u = view(x, :,:,1)
     v = view(x, :,:,2)

@@ -13,6 +13,7 @@ using Distributed # Distributed computing
 using SIMD # Explicit SIMD
 using LoopVectorization # Autovectorization
 using KernelAbstractions # Vendor agnostic GPU kernels
+using CUDA
 # utilities
 using ArrayPadding
 using ProgressMeter
@@ -29,7 +30,6 @@ Base.@kwdef struct GrayScottOptions
     output::String = "data/output.h5"
     num_output_steps::Int = 1000
     num_extra_steps::Int = 34
-    Δt::Float64 = 1.0
 end
 
 function initial_condition(opts::GrayScottOptions)
@@ -50,6 +50,7 @@ Base.@kwdef struct GrayScottParams{T<:Real}
     Dᵥ::T = 0.05 # Diffusion rate for v
     f::T = 0.054 # Birth rate
     k::T = 0.014 # Death rate
+    dt::Float64 = 1.0
 end
 
 include("AbstractGrayScott.jl")
@@ -60,6 +61,7 @@ include("backends/grayscott_threaded.jl")
 include("backends/grayscott_parallel.jl")
 include("backends/grayscott_simd.jl")
 include("backends/grayscott_turbo.jl")
+include("backends/grayscott_cuda.jl")
 include("backends/grayscott_gpu.jl")
 
 function simulate(
@@ -78,7 +80,7 @@ function simulate(
     @showprogress for i in 1:opts.num_output_steps
         for _ in 1:opts.num_extra_steps
             update!(dx, x, params, backend)
-            @. x += dx * opts.Δt
+            ode_step!(dx, x, params, backend)
         end
         output!(view(out, :,:,:,i), x, backend)
     end

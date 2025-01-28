@@ -7,17 +7,11 @@ using KernelAbstractions: @kernel, @index
 
 A vendor agnostic GPU backend for the Gray-Scott ODE function. It relies on the `KernelAbstractions` package to generically define kernels.
 """
-struct GPUGrayScott{T} <: AbstractGrayScott
+struct GPUGrayScott{T<:KernelAbstractions.Backend} <: AbstractGrayScott
     device::T
 end
 
-function GPUGrayScott()
-    if KernelAbstractions.DEFAULT_DEVICE[] isa KernelAbstractions.GPU
-        GPUGrayScott(KernelAbstractions.DEFAULT_DEVICE[])
-    else
-        GPUGrayScott(CPU())
-    end
-end
+GPUGrayScott() = GPUGrayScott(CPU())
 
 function initial_state(init_cond, gs::GPUGrayScott)
     nrow, ncol = size(init_cond)[2:3]
@@ -25,24 +19,40 @@ function initial_state(init_cond, gs::GPUGrayScott)
     v = KernelAbstractions.allocate(gs.device, eltype(init_cond), (nrow+2, ncol+2))
     copyto!(u, pad(init_cond[1,:,:], 0.0, (1,1)))
     copyto!(v, pad(init_cond[2,:,:], 0.0, (1,1)))
-    du = similar(u)
-    dv = similar(v)
-    (u, v), (du, dv)
+    du = KernelAbstractions.allocate(gs.device, eltype(init_cond), (nrow+2, ncol+2))
+    dv = KernelAbstractions.allocate(gs.device, eltype(init_cond), (nrow+2, ncol+2))
+    return (u, v), (du, dv)
 end
 
 function output!(out, state, ::GPUGrayScott)
     u, v = state
-    copyto!(view(out, 1, :, :), u[2:end-1, 2:end-1])
-    copyto!(view(out, 2, :, :), v[2:end-1, 2:end-1])
+    tmp = Array(u)
+    copyto!(view(out, :, :, 1), tmp[2:end-1, 2:end-1])
+    copyto!(tmp, v)
+    copyto!(view(out, :, :, 2), tmp[2:end-1, 2:end-1])
 end
 
-function update!((du,dv), (u,v), params::GrayScottParams, gs::GPUGrayScott)
-    dx .= 0
-    update_kernel! = update_kernel!(gs.device)
-    update_kernel!(du, dv, u, v, )
+function ode_step!(dx, x, params::GrayScottParams, ::GPUGrayScott)
+    nothing # the ode step is fused into the main kernel
 end
 
-@kernel function update_kernel!(du, dv, u, v, Dᵤ, Dᵥ, f, k, dt)
+function update!(dx, x, params::GrayScottParams, gs::GPUGrayScott)
+    du, dv = dx
+    u, v = x
+    du .= 0.0f0
+    dv .= 0.0f0
+    Dᵤ = Float32(params.Dᵤ)
+    Dᵥ = Float32(params.Dᵥ)
+    f = Float32(params.f)
+    k = Float32(params.k)
+    dt = Float32(params.dt)
+    threads = (16,16)
+    global_size = size(u)
+    update_kernel! = update_kernel(gs.device)
+    update_kernel!(du, dv, u, v, Dᵤ, Dᵥ, f, k, dt, ndrange = global_size, workgroupsize=threads)
+end
+
+@kernel function update_kernel(du, dv, u, v, Dᵤ, Dᵥ, f, k, dt)
     i, j = @index(Global, NTuple)
     if i > 1 && i < size(u, 1) && j > 1 && j < size(u, 2)
         @inbounds begin
@@ -63,6 +73,9 @@ end
             # Euler step
             u[i,j] += du[i,j] * dt
             v[i,j] += dv[i,j] * dt
+            # clamp
+            u[i,j] = clamp(u[i,j], 0.0f0, 1.0f0)
+            v[i,j] = clamp(v[i,j], 0.0f0, 1.0f0)
         end
     end
 end

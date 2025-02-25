@@ -57,13 +57,13 @@ end
     if i > 1 && i < size(u, 1) && j > 1 && j < size(u, 2)
         @inbounds begin
             # Laplacian term
-            tmp = 0.25 * (u[i-1,j-1] + u[i+1,j-1] + u[i-1,j+1] + u[i+1,j+1]) +
-                  0.5  * (u[i,j-1] + u[i-1,j] + u[i+1,j] + u[i,j+1]) -
-                  3.0  * u[i,j]
+            tmp = 0.25f0 * (u[i-1,j-1] + u[i+1,j-1] + u[i-1,j+1] + u[i+1,j+1]) +
+                  0.5f0  * (u[i,j-1] + u[i-1,j] + u[i+1,j] + u[i,j+1]) -
+                  3.0f0  * u[i,j]
             du[i,j] = Dᵤ * tmp
-            tmp = 0.25 * (v[i-1,j-1] + v[i+1,j-1] + v[i-1,j+1] + v[i+1,j+1]) +
-                  0.5  * (v[i,j-1] + v[i-1,j] + v[i+1,j] + v[i,j+1]) -
-                  3.0  * v[i,j]
+            tmp = 0.25f0 * (v[i-1,j-1] + v[i+1,j-1] + v[i-1,j+1] + v[i+1,j+1]) +
+                  0.5f0  * (v[i,j-1] + v[i-1,j] + v[i+1,j] + v[i,j+1]) -
+                  3.0f0  * v[i,j]
             du[i,j] = Dᵥ * tmp
 
             # reaction term

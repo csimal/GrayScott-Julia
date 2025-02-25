@@ -1,4 +1,9 @@
 
+"""
+    ThreadedGrayScott <: AbstractGrayScott
+
+A multi-threaded backend for the Gray-Scott equations using Julia's standard library multithreading.
+"""
 struct ThreadedGrayScott <: AbstractGrayScott end
 
 function output!(out, state, ::ThreadedGrayScott)

@@ -2,7 +2,7 @@
 """
     AdvancedGrayScott
 
-A slightly sophisticated backend for the Gray-Scott ODE. It is essentially the same as `SimpleGrayScott` but with a few macros slapped on to disable array bounds checking and encouraging the compiler to use SIMD.
+A slightly sophisticated backend for the Gray-Scott ODE. It is essentially the same as `SimpleGrayScott` but with a few macros slapped on to disable array bounds checking and encourage the compiler to use SIMD instructions.
 """
 struct AdvancedGrayScott <: AbstractGrayScott end
 

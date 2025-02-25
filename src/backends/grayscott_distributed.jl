@@ -4,19 +4,19 @@
 
 A parallel backend for computing the Gray-Scott ODE using Julia's native distributed computing library.
 """
-struct ParallelGrayScott <: AbstractGrayScott end
+struct DistributedGrayScott <: AbstractGrayScott end
 
-function initial_state(init_cond, ::ParallelGrayScott)
+function initial_state(init_cond, ::DistributedGrayScott)
     # We need to use a shared array in order to write concurrently from multiple processes
     x = SharedArray(pad(init_cond, 0.0, (1,1,0)))
     x, SharedArray(similar(x)) # similar returns an array, so we need to do this
 end
 
-function allocate_output(init_cond, opts::GrayScottOptions, ::ParallelGrayScott)
+function allocate_output(init_cond, opts::GrayScottOptions, ::DistributedGrayScott)
     SharedArray(zeros(size(init_cond)..., opts.num_output_steps))
 end
 
-function output!(out, state, ::ParallelGrayScott)
+function output!(out, state, ::DistributedGrayScott)
     @assert size(state, 1) == size(out, 1) + 2
     @assert size(state, 2) == size(out, 2) + 2
 
@@ -29,9 +29,9 @@ function output!(out, state, ::ParallelGrayScott)
 end
 
 # compute the laplacian using multiple cores
-get_resource(::ParallelGrayScott) = CPUProcesses()
+get_resource(::DistributedGrayScott) = CPUProcesses()
 
-function reaction!(du, dv, u, v, params::GrayScottParams, ::ParallelGrayScott)
+function reaction!(du, dv, u, v, params::GrayScottParams, ::DistributedGrayScott)
     m, n = size(du)
     f, k = params.f, params.k
     @sync @distributed for j in 2:(n-1)
@@ -43,7 +43,7 @@ function reaction!(du, dv, u, v, params::GrayScottParams, ::ParallelGrayScott)
     end
 end
 
-function laplacian!(du, u, D, ::ParallelGrayScott)
+function laplacian!(du, u, D, ::DistributedGrayScott)
     m, n = size(du)
     @sync @distributed for j in 2:(n-1)
         @simd for i in 2:(m-1)

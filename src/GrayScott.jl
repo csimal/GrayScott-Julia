@@ -23,6 +23,19 @@ export initial_condition
 export initial_state
 export simulate
 
+"""
+    GrayScottOptions
+
+A struct containing the configuration of the Gray-Scott simulation.
+
+## Fields
+* `nrow::Int = 1080` Number of rows of the domain
+* `ncol::Int = 1920` Number of columns of the domain
+* `output::String = \"data/output.h5\"` The path to the output file
+* `num_output_steps::Int = 1000` The number of steps to include in the output
+* `num_extra_steps::Int = 34` The number of extra steps to perform between each output step
+* `Δt::Float64 = 1.0` The time step used in the Euler discretization of the ODE
+"""
 Base.@kwdef struct GrayScottOptions
     nrow::Int = 1080
     ncol::Int = 1920
@@ -45,6 +58,17 @@ function initial_condition(opts::GrayScottOptions)
     return x
 end
 
+"""
+    GrayScottParams{T<:Real}
+
+A struct containing the model parameters of the Gray-Scott model
+
+## Fields
+* `Dᵤ::T = 0.1` Diffusion rate for u
+* `Dᵥ::T = 0.05`  Diffusion rate for v
+* `f::T = 0.054` Birth rate
+* `k::T = 0.014` Death rate
+"""
 Base.@kwdef struct GrayScottParams{T<:Real}
     Dᵤ::T = 0.1 # Diffusion rate for u
     Dᵥ::T = 0.05 # Diffusion rate for v
@@ -62,6 +86,14 @@ include("backends/grayscott_simd.jl")
 include("backends/grayscott_turbo.jl")
 include("backends/grayscott_gpu.jl")
 
+
+"""
+    simulate(opts, params, backend, init_cond)
+
+Simulate the Gray-Scott model.
+
+The options and parameters of the model are specified by `opts` and `params` respectively. The actual computation can be performed with one of multiple backends, depending on the resources available.
+"""
 function simulate(
     opts::GrayScottOptions,
     params::GrayScottParams,

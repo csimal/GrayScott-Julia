@@ -3,8 +3,6 @@
     TurboGrayScott <: AbstractGrayScott
 
 A backend for the Gray-Scott equations using the LoopVectorization package for autovectorization.
-
-NOTE: Unfortunately, LoopVectorization is likely to be deprecated in the next version of Julia.
 """
 struct TurboGrayScott <: AbstractGrayScott end
 

@@ -35,7 +35,6 @@ A struct containing the configuration of the Gray-Scott simulation.
 * `output::String = \"data/output.h5\"` The path to the output file
 * `num_output_steps::Int = 1000` The number of steps to include in the output
 * `num_extra_steps::Int = 34` The number of extra steps to perform between each output step
-* `Δt::Float64 = 1.0` The time step used in the Euler discretization of the ODE
 """
 Base.@kwdef struct GrayScottOptions
     nrow::Int = 1080
@@ -68,13 +67,14 @@ A struct containing the model parameters of the Gray-Scott model
 * `Dᵥ::T = 0.05`  Diffusion rate for v
 * `f::T = 0.054` Birth rate
 * `k::T = 0.014` Death rate
+* `dt::T` Time step for ODE solver
 """
 Base.@kwdef struct GrayScottParams{T<:Real}
     Dᵤ::T = 0.1 # Diffusion rate for u
     Dᵥ::T = 0.05 # Diffusion rate for v
     f::T = 0.054 # Birth rate
     k::T = 0.014 # Death rate
-    dt::Float64 = 1.0
+    dt::T = 1.0
 end
 
 include("AbstractGrayScott.jl")
